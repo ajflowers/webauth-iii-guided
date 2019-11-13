@@ -4,19 +4,31 @@ const jwt = require('jsonwebtoken');
 
 const Users = require('../users/users-model.js');
 
+const {validateUser} = require ('../users/users-helpers')
+
 // for endpoints beginning with /api/auth
 router.post('/register', (req, res) => {
   let user = req.body;
-  const hash = bcrypt.hashSync(user.password, 10); // 2 ^ n
-  user.password = hash;
+  //always validate the data before sending it to the db
+  const validateResult = validateUser(user);
 
-  Users.add(user)
-    .then(saved => {
-      res.status(201).json(saved);
-    })
-    .catch(error => {
-      res.status(500).json(error);
-    });
+  if (validateResult.isSuccessful) {
+    const hash = bcrypt.hashSync(user.password, 10); // 2 ^ n
+    user.password = hash;
+  
+    Users.add(user)
+      .then(saved => {
+        res.status(201).json(saved);
+      })
+      .catch(error => {
+        res.status(500).json(error);
+      });
+  } else {
+    res.status(400).json({ message: 'Invalid user info', errors: validateResult.errors })
+  }
+ 
+
+
 });
 
 router.post('/login', (req, res) => {
